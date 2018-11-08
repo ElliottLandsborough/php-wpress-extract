@@ -27,35 +27,28 @@ class Ai1wm_Extractor {
 	);
 
 	/**
+	 * Total files size
+	 *
+	 * @type int
+	 */
+	protected $total_files_size = null;
+
+	/**
 	 * Default constructor
 	 *
 	 * Initializes filename and end of file block
 	 *
 	 * @param string $file_name Archive file
-	 * @param bool   $write     Read/write mode
 	 */
-	public function __construct( $file_name, $write = false ) {
+	public function __construct( $file_name ) {
 		$this->file_name = $file_name;
 
 		// Initialize end of file block
 		$this->eof = pack( 'a4377', '' );
 
-		// Open archive file
-		if ( $write ) {
-			// Open archive file for writing
-			if ( ( $this->file_handle = @fopen( $file_name, 'cb' ) ) === false ) {
-				throw new Ai1wm_Not_Accessible_Exception( sprintf( 'Unable to open file for writing. File: %s', $this->file_name ) );
-			}
-
-			// Seek to end of archive file
-			if ( @fseek( $this->file_handle, 0, SEEK_END ) === -1 ) {
-				throw new Ai1wm_Not_Seekable_Exception( sprintf( 'Unable to seek to end of file. File: %s', $this->file_name ) );
-			}
-		} else {
-			// Open archive file for reading
-			if ( ( $this->file_handle = @fopen( $file_name, 'rb' ) ) === false ) {
-				throw new Ai1wm_Not_Accessible_Exception( sprintf( 'Unable to open file for reading. File: %s', $this->file_name ) );
-			}
+		// Open archive file for reading
+		if ( ( $this->file_handle = @fopen( $file_name, 'rb' ) ) === false ) {
+			throw new Ai1wm_Not_Accessible_Exception( sprintf( 'Unable to open file for reading. File: %s', $this->file_name ) );
 		}
 	}
 
@@ -434,5 +427,52 @@ class Ai1wm_Extractor {
 		if ( @fclose( $this->file_handle ) === false ) {
 			throw new Ai1wm_Not_Closable_Exception( sprintf( 'Unable to close file. File: %s', $this->file_name ) );
 		}
+	}
+
+	/**
+	 * Get the total files size in an archive
+	 *
+	 * @return int
+	 */
+	public function get_total_files_size() {
+		if ( is_null( $this->total_files_size ) ) {
+
+			// Total files count
+			$this->total_files_count = 0;
+
+			// Total files size
+			$this->total_files_size = 0;
+
+			// Seek to beginning of archive file
+			if ( @fseek( $this->file_handle, 0, SEEK_SET ) === -1 ) {
+				throw new Ai1wm_Not_Seekable_Exception( sprintf( 'Unable to seek to beginning of file. File: %s', $this->file_name ) );
+			}
+
+			// Loop over files
+			while ( $block = @fread( $this->file_handle, 4377 ) ) {
+
+				// End block has been reached
+				if ( $block === $this->eof ) {
+					continue;
+				}
+
+				// Get file data from the block
+				if ( ( $data = $this->get_data_from_block( $block ) ) ) {
+
+					// We have a file, increment the count
+					$this->total_files_count += 1;
+
+					// We have a file, increment the size
+					$this->total_files_size += $data['size'];
+
+					// Skip file content so we can move forward to the next file
+					if ( @fseek( $this->file_handle, $data['size'], SEEK_CUR ) === -1 ) {
+						throw new Ai1wm_Not_Seekable_Exception( sprintf( 'Unable to seek to offset of file. File: %s Offset: %d', $this->file_name, $data['size'] ) );
+					}
+				}
+			}
+		}
+
+		return $this->total_files_size;
 	}
 }
