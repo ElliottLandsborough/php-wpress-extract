@@ -1,6 +1,6 @@
 # Wpress extracor
 
-Because sometimes you want to extract .wpress plugins without using the official plugin.
+Because sometimes you want to extract .wpress files without using the official plugin.
 
 ## How
 
