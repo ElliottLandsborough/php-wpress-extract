@@ -2,7 +2,22 @@
 
 require dirname(__FILE__) . DIRECTORY_SEPARATOR . 'classes' . DIRECTORY_SEPARATOR . 'Ai1wm_Extractor.php';
 
-$file = __DIR__ . DIRECTORY_SEPARATOR . 'test_archive.wpress';
+// Command Line 
+if (php_sapi_name() === 'cli') {
+	$file = $argv[1];
+} else {
+	// Manually set these if you want to run from the web
+	$directory_to_extract_to = '';	
+	$file = '';	
+}
+if (!is_file($file)) {
+	throw new Exception('File path must be a valid file!');
+}	
+
+$directory_to_extract_to = $argv[2];
+if (!is_dir($directory_to_extract_to)) {
+	throw new Exception('Directory given not a valid directory!');
+}
 
 // Open the archive file for reading
 $archive = new Ai1wm_Extractor($file);
@@ -32,7 +47,7 @@ while ($archive->has_not_reached_eof()) {
     $file_bytes_written = 0;
 
     // Extract a file from archive to WP_CONTENT_DIR
-    if (( $completed = $archive->extract_one_file_to(__DIR__ . DIRECTORY_SEPARATOR . 'test_output' . DIRECTORY_SEPARATOR, [], [], [], $file_bytes_written, $file_bytes_offset) )) {
+    if (( $completed = $archive->extract_one_file_to($directory_to_extract_to.DIRECTORY_SEPARATOR, [], [], [], $file_bytes_written, $file_bytes_offset) )) {
         $file_bytes_offset = 0;
     }
 

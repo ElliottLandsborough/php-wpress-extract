@@ -1,1 +1,0 @@
-rm -rf test_output; mkdir test_output; php index.php;
